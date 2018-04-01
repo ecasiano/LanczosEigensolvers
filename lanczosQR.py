@@ -12,6 +12,8 @@ from scipy.sparse.linalg import eigsh
 from numpy.linalg import qr
 from pytictoc import TicToc
 
+"-------------------------------------------------------------------------"
+
 def SymmMat(D):
     '''Generates a Random Real Symmetric Matrix of dimensions DxD'''
     A = np.zeros([D,D])
@@ -20,6 +22,8 @@ def SymmMat(D):
             A[i,j] = np.random.random()
             A[j,i] = A[i,j]   #Symmetry condition
     return A
+
+"-------------------------------------------------------------------------"
 
 def NSI(A, maxiter=1000):
     '''Obtain Eigendecomposition of matrix A via Normalized Simultaneous QR Iteration in k steps'''
@@ -30,6 +34,8 @@ def NSI(A, maxiter=1000):
     lam = np.diagonal(Q.T @ A @ Q) #Rayleigh Quotient Matrix
     return(lam)
     
+"-------------------------------------------------------------------------"
+
 def LanczosTri(A):
     '''Tridiagonalize Matrix A via Lanczos Iterations'''
     
@@ -62,7 +68,8 @@ def LanczosTri(A):
     T = V.T @ A @ V
         
     return T
-    
+"-------------------------------------------------------------------------" 
+
 def main():
     #Create the Matrix to be tri-diagonalized
     n = 5                       #Size of input matrix (nxn)
@@ -83,26 +90,24 @@ def main():
     #Transform the matrix A to tridiagonal form via Lanczos
     T = LanczosTri(A)
     
-    #Get eigenpairs of untransformed hermitian matrix A and time the process
+    #Get eigenpairs of untransformed hermitian matrix A and time the process using blackbox function
     t1 = TicToc()
     t1.tic()
-    #e_gs_A, gs_A = eigsh(A,k=n-1,which='SA',maxiter=1000)
-    e_gs_A = NSI(A,maxiter=1000)
+    e_gs_A, gs_A = eigsh(A,k=n-1,which='SA',maxiter=1000)
+    #e_gs_A = NSI(A,maxiter=1000)
     t1.toc()
-    #print("Eigs(A): ", e_gs_A)
+    print("Eigs(A): ", e_gs_A)
     #print("Eigs(A): ",np.sort(e_gs_A[:-1]))
     
-    #Find Eigenvalues for Real, Symmetric, Tridiagonal Matrix
-    #via QR Iteration
+    #Find Eigenvalues for Real, Symmetric, Tridiagonal Matrix via QR Iteration
     t2 = TicToc()
     t2.tic()
     lam = NSI(T,maxiter=1000)
     t2.toc()
-    #print("Eigs(T): ", np.sort(lam)[:-1])
-    
+    print("Eigs(T): ", np.sort(lam)[:-1])
     
 if __name__ == '__main__':
-        main()
+    main()
 
 
 
