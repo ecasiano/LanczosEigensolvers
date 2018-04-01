@@ -1,6 +1,5 @@
 #Emanuel Casiano-Diaz
-#Tridiagonalizes a real symmetric matrix through Lanczos iterations
-#Then finds its eigenvalues via QR Algorithm
+#Tridiagonalizes a real symmetric matrix through Lanczos iterations #then finds its eigenvalues via QR Algorithm
 
 #References:
 #http://qubit-ulm.com/wp-content/uploads/2012/04/Lanczos_Algebra.pdf
