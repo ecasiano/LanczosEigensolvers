@@ -36,13 +36,12 @@ def NSI(A, tol=1E-13, maxiter=5000):
     ctr = 0
     while norm(residual) > tol:
         Q,R = qr(A@Q)
-        lam = np.diagonal(Q.T @ A @ Q) #Diagonal
+        lam = np.diagonal(Q.T @ A @ Q) #Rayleigh Quotient Matrix
         residual = norm(lprev - np.sort(lam))
         lprev = np.sort(lam)
         ctr += 1
         if ctr == maxiter: break
     #print(ctr)
-    lam = np.diagonal(Q.T @ A @ Q) #Diagonal Elements of the Rayleigh Quotient Matrix
         
     return(lam)
     
@@ -62,10 +61,9 @@ def LanczosTri(A):
     q = x/norm(x)
     V[:,0] = q
     r = A @ q
-    print("!!!!",norm(A@q))
     a1 = q.T @ r
     r = r - a1*q
-    #b1 = norm(r)
+    b1 = norm(r)
     b1=1
     ctr = 0
     #print("a1 = %.12f, b1 = %.12f"%(a1,b1))
@@ -79,7 +77,10 @@ def LanczosTri(A):
         r = r - a1*q
    
         V = np.hstack((V,np.reshape(q,(n,1))))
-   
+
+        #Reorthogonalize
+        V = qr(V)[0]
+
         b1 = norm(r)
         ctr+=1
         print("|V.T@V - I| = ")
@@ -95,6 +96,9 @@ def LanczosTri(A):
     if((V.T@V != np.eye(n)).any()):
         print("WARNING: V.T @ V != I: Orthonormality of Transform Lost")
         
+    #Reorthonormalize
+    #V = qr(V)[0]
+    
     #Tridiagonal matrix similar to A
     T = V.T @ A @ V
     #print(T)
@@ -108,7 +112,7 @@ def LanczosTri(A):
 
 def main():
     #Create the Matrix to be tri-diagonalized
-    n = 100                       #Size of input matrix (nxn)
+    n = 50                       #Size of input matrix (nxn)
     A = SymmMat(n)               #Input matrix. (Hermitian)
     
     #Hamiltonian of tV Model for L = 4, N = 2, ell=2
@@ -119,7 +123,7 @@ def main():
     #                   (0,1,0,1,0,0),
     #                   (0,1,0,1,0,0)))
     
-    ##Test Sparse Matrix
+    #Test Sparse Matrix
     #A = 1.0*np.diag((1,2,3,4,5,6))
     #A[-1,0] = 5
     #A[0,-1] = 5
@@ -150,6 +154,14 @@ def main():
     #e_gs_A = NSI(A,maxiter=1000)
     t1.toc()
     print("Eigs(T) (np.eigsh): ", e_gs_T[0])
+    #print("Eigs(A): ",np.sort(e_gs_A[:-1]))
+    
+    t3 = TicToc()
+    t3.tic()
+    e_gs_A, gs_A = eigsh(A,k=n-1,which='SA',maxiter=1000)
+    #e_gs_A = NSI(A,maxiter=1000)
+    t3.toc()
+    print("Eigs(A) (np.eigsh): ", e_gs_A[0])
     #print("Eigs(A): ",np.sort(e_gs_A[:-1]))
         
 if __name__ == '__main__':
