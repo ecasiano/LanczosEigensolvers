@@ -7,28 +7,34 @@
 #Numerical Analysis, T.Sauer, Chapter 12
 
 import numpy as np
-from scipy.linalg import norm
-from scipy.sparse.linalg import eigsh
 from numpy.linalg import qr
+
+from scipy.linalg import norm
+import scipy.stats as stats
+import scipy.sparse as sparse
+from scipy.sparse.linalg import eigsh
+
 from pytictoc import TicToc
 
-"-------------------------------------------------------------------------"
-
-def SymmMat(D):
-    '''Generates a Random Real Symmetric Matrix of dimensions DxD'''
-    A = np.zeros([D,D])
-    for i in range(D):
-        for j in range(i+1):
-            A[i,j] = np.random.random()
-            A[j,i] = A[i,j]   #Symmetry condition
-    return A
 
 "-------------------------------------------------------------------------"
 
-def NSI(A, tol=1E-13, maxiter=5000):
+#From: https://stackoverflow.com/questions/26895011/python-how-to-use-python-to-generate-a-random-sparse-symmetric-matrix
+def SymmMat(n, density):
+    '''Generate a Sparse Hermitian Matrix'''
+    np.random.seed((0,0))     #Uncomment to always generate same numbers
+    rvs = stats.norm().rvs
+    X = sparse.random(n, n, density=density, data_rvs=rvs)
+    #X.data[:] = 1              #Replace all nonzero entries with ones
+    upper_X = sparse.triu(X) 
+    result = upper_X + upper_X.T - sparse.diags(X.diagonal())
+    return result
+
+"-------------------------------------------------------------------------"
+
+def NSI(A, tol=1E-14, maxiter=5000):
     '''Obtain Eigendecomposition of matrix A via Normalized Simultaneous QR Iteration in k steps'''
-    
-    #Get Eigenvalues, Eigenvectors
+    #Get Eigenvalues, Eigenvectors via QR Algorithm (Normalized Simultaneous Iteration)
     m = A.shape[0]
     Q = np.identity(m)
     residual = 1
@@ -51,10 +57,10 @@ def LanczosTri(A):
     '''Tridiagonalize Matrix A via Lanczos Iterations'''
     
     #Check if A is symmetric
-    if((A.transpose() != A).any()):
-        print("WARNING: Input matrix is not symmetric")
+    #if((A.transpose() != A).any()):
+    #    print("WARNING: Input matrix is not symmetric")
     n = A.shape[0]
-    x = np.ones(n)              #Random Initial Vector
+    x = np.ones(n)                      #Random Initial Vector
     V = np.zeros((n,1))                 #Tridiagonalizing Matrix
 
     #Begin Lanczos Iteration
@@ -64,64 +70,57 @@ def LanczosTri(A):
     a1 = q.T @ r
     r = r - a1*q
     b1 = norm(r)
-    b1=1
     ctr = 0
     #print("a1 = %.12f, b1 = %.12f"%(a1,b1))
     for j in range(2,n+1):
         v = q
         q = r/b1
-        #V[:,j-1] = q
-        #V = np.hstack((V,np.reshape(q,(n,1))))
         r = A @ q - b1*v
         a1 = q.T @ r
         r = r - a1*q
-   
+        b1 = norm(r)
+        
+        #Append new column vector at the end of V
         V = np.hstack((V,np.reshape(q,(n,1))))
 
-        #Reorthogonalize
+        #Reorthogonalize all previous v's
         V = qr(V)[0]
 
-        b1 = norm(r)
         ctr+=1
-        print("|V.T@V - I| = ")
-        print(np.abs((V.T@V)-np.eye(j)))
+        
         if b1 == 0: 
             print("WARNING: Lanczos ended due to b1 = 0")
             return V #Need to reorthonormalize
         
         #print(np.trace(V.T@V)/j)
     #Check if V is orthonormal
-    print("|V.T@V - I| = ")
-    print(np.abs((V.T@V)-np.eye(n)))
-    if((V.T@V != np.eye(n)).any()):
-        print("WARNING: V.T @ V != I: Orthonormality of Transform Lost")
+    #print("|V.T@V - I| = ")
+    #print(np.abs((V.T@V)-np.eye(n)))
+    #if((V.T@V != np.eye(n)).any()):
+    #    print("WARNING: V.T @ V != I: Orthonormality of Transform Lost")
         
-    #Reorthonormalize
-    #V = qr(V)[0]
-    
     #Tridiagonal matrix similar to A
     T = V.T @ A @ V
-    #print(T)
-        
-    #Normalize via Frobenius Norm
-    #alpha = norm(T)/norm(A)
-    #T = T/alpha
     
     return T
 "-------------------------------------------------------------------------" 
 
 def main():
     #Create the Matrix to be tri-diagonalized
-    n = 50                       #Size of input matrix (nxn)
-    A = SymmMat(n)               #Input matrix. (Hermitian)
+    n = 6                                   #Size of input matrix (nxn)
+    A = SymmMat(n,density=1)               #Input matrix. (Hermitian,Sparse)
+    print(A)
+    
+    #Check that the matrix is symmetric. The difference should have no non-zero elements
+    assert (A - A.T).nnz == 0
     
     #Hamiltonian of tV Model for L = 4, N = 2, ell=2
-    #A = -1.0*np.array(((0,1,0,1,0,0),
-    #                   (1,0,1,0,1,1),
-    #                   (0,1,0,1,0,0),
-    #                   (1,0,1,0,1,1),
-    #                   (0,1,0,1,0,0),
-    #                   (0,1,0,1,0,0)))
+    A = -1.0*np.array(((0,1,0,1,0,0),
+                       (1,0,1,0,1,1),
+                       (0,1,0,1,0,0),
+                       (1,0,1,0,1,1),
+                       (0,1,0,1,0,0),
+                       (0,1,0,1,0,0)))
     
     #Test Sparse Matrix
     #A = 1.0*np.diag((1,2,3,4,5,6))
